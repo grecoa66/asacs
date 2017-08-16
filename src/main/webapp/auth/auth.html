@@ -1,0 +1,28 @@
+<div class="container" ng-controller="authController as authCtrl">
+    <div ng-show="loginFailed">
+        <h5 class="text-danger">You have entered an incorrect user name or password. Please try again!</h5>
+    </div>
+
+    <div class="input-group" ng-show="loginPortal">
+        <h3>All Employees and Volunteers please log in to see the full site.</h3>
+
+        <form ng-submit="authCtrl.login()">
+            <input ng-model="userName" id="logginInput" class="form-control" placeholder="User Name" type="text" ng-init="userName='emp1'">
+            <br>
+            <input ng-model="password" id="passwordInput" class="form-control" placeholder="password" type="password" ng-init="password='gatech123'">
+            <br><br><br>
+            <button class="btn btn-primary">Submit</button>
+        </form>
+    </div>
+    <br>
+
+    <div ng-show="webReports">
+        <h3>Click here to see all public reports</h3>
+        <a href="/ASACS/reports" class="btn btn-primary">Reports</a>
+    </div>
+
+    <!-- show this while api is being called -->
+    <div ng-show="loggingInBanner">
+        <h3>Checking Credentials ...</h3>
+    </div>
+</div>

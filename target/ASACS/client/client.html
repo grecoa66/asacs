@@ -1,0 +1,262 @@
+<div ng-controller="clientController as clientCtrl" xmlns="http://www.w3.org/1999/html">
+
+    <h2>Client Management</h2>
+
+    <nav class="navbar navbar-default">
+        <div class="container-fluid">
+            <ul class="nav navbar-nav">
+                <li><a href="home">Main Menu</a></li>
+                <li ng-class="{'active':canAddClient}" ng-click="clientCtrl.addNewClient()"><a>Add Client</a></li>
+                <li ng-class="{'active':canSearchClient}" ng-click="clientCtrl.searchEditClient()"><a>Search/Edit Client</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <!-- Add Client form -->
+        <div ng-show="canAddClient"  class="">
+            <form name="newClientForm" ng-submit="newClientForm.$valid && clientCtrl.processClient()" novalidate>
+                <div class="form-group-sm">
+                    <h4>Please enter new <strong> Client </strong> information and submit:</h4>
+
+                    <label for="idNbr">ID Number<span style="color:#FF0000; font-size:12px;" ng-show="newClientForm.idNbr.$error.required">*</span></label>
+                    <input name="idNbr" id="idNbr" style="width: 350px" ng-model="idNbr" class="form-control" rows="2" maxlength="40" placeholder="Enter Client ID Number - max 40 alphanumeric characters" required><br>
+
+                    <label for="idDesc">Description<span style="color:#FF0000; font-size:12px;" ng-show="newClientForm.idDesc.$error.required">*</span></label>
+                    <input name="idDesc" id="idDesc" style="width: 700px" ng-model="idDesc" class="form-control" rows="2" maxlength="200" placeholder="Enter ID type information - max 200 characters" required> <br>
+
+                    <label for="firstName">First Name<span style="color:#FF0000; font-size:12px;" ng-show="newClientForm.firstName.$error.required">*</span></label>
+                    <input name="firstName" id="firstName" style="width: 700px" ng-model="firstName" class="form-control" rows="2" maxlength="200" placeholder="Enter Client first name - max 40 characters" required><br>
+
+                    <label for="lastName">Last Name<span style="color:#FF0000; font-size:12px;" ng-show="newClientForm.lastName.$error.required">*</span></label>
+                    <input name="lastName" id="lastName" style="width: 700px" ng-model="lastName" class="form-control" rows="2" maxlength="200" placeholder="Enter Client last name - max 40 characters" required> <br>
+
+                    <label for="idPhone">Telephone Number</label>
+                    <input id="idPhone" style="width: 350px" ng-model="idPhone" class="form-control" rows="2" maxlength="15" placeholder="999-999-9999">
+
+                    <br>
+                    <input type="submit" class="btn btn-primary">
+
+                    <br><br><p><span ng-show="newClientForm.$error.required" style="color:#FF0000; font-size:12px;"> *Please fill all required Fields</span></p>
+                </div>
+            </form>
+        </div>
+
+        <!-- create request -->
+        <!-- When you choose an option that value gets assigned to the canSearchClient var -->
+        <div ng-show="canSearchClient" >
+            <h4>Search Client</h4>
+            <h5>Please select a search parameter:</h5>
+            <form ng-submit="clientCtrl.searchClientParameter()">
+                <div class="form-check">
+
+                    <div class="radio">
+                        <input  type="radio" ng-model="paramSelect" value="byId" maxlength="40">Search by ID Number
+                    </div>
+
+                    <div class="radio">
+                        <input type="radio" ng-model="paramSelect" value="byName" maxlength="200">Search by Client Name
+                    </div>
+                    <br>
+                    <input type="submit" class="btn btn-primary">
+                </div>
+            </form>
+        </div>
+
+        <!-- form to search for client by ID -->
+        <div ng-show="idSearch"  class="">
+            <form ng-submit="clientCtrl.processIdSearch()" novalidate>
+            <div class="form-group-sm">
+                <h4>Client Search</h4>
+                <h5>Please enter ID Number:</h5>
+
+                <label for="searchId">Id Number</label>
+                <textarea id="searchId" ng-model="searchId" class="form-control" rows="2" maxlength="40" ng-style="{'width':'400px'}"></textarea>
+                <br>
+                <input type="submit" class="btn btn-primary">
+            </div>
+            </form>
+        </div>
+
+        <!-- form to search for client by Name -->
+        <div ng-show="nameSearch"  class="">
+            <form ng-submit="clientCtrl.processNameSearch()" novalidate>
+                <div class="form-group-sm">
+                    <h4>Client Search</h4>
+                    <h5>Please enter Name:</h5>
+
+                    <label for="searchLastName">Name</label>
+                    <textarea id="searchLastName" ng-model="searchLastName" class="form-control" rows="2" maxlength="40" ng-style="{'width':'400px'}"></textarea>
+                    <br>
+                    <input type="submit" class="btn btn-primary">
+                </div>
+            </form>
+        </div>
+
+        <!-- a list of clients to chose from -->
+        <div ng-show="canViewResults" >
+            <form ng-submit="clientCtrl.editResult()">
+                <table class="table">
+                    <thead>
+                    <th></th>
+                    <th>ID Description</th>
+                    <th>First Name</th>
+                    <th>Last Name</th>
+                    <th>Phone Number</th>
+                    </thead>
+                    <tbody>
+                    <tr ng-repeat="client in clientArr">
+                        <td>
+                            <input type="radio" ng-model="$parent.clientIdResult" ng-value="client">
+                        </td>
+                        <td>{{client.id_desc}}</td>
+                        <td>{{client.first_name}}</td>
+                        <td>{{client.last_name}}</td>
+                        <td>{{client.phone_number}}</td>
+                    </tr>
+                    </tbody>
+                </table>
+                <button ng-show="canViewResults" class="btn btn-primary">Edit Client</button>
+                <br>
+                <br>
+                <h6 class="text-info">Notice: Only 5 results will be shown at a time. If your result does not appear, please start over and try a more specific search.</h6>
+            </form>
+        </div>
+
+        <!-- Edit Client form -->
+        <div ng-show="canEditClient"  class="">
+
+            <button class="btn btn-primary" ng-click="clientCtrl.showReport();">Show Client Report</button>
+
+            <form name="editClientForm" ng-submit="editClientForm.$valid && clientCtrl.updateClient()" novalidate>
+                <div class="form-group-sm">
+                    <h4>Please edit the following details for the <strong> Client </strong> information and submit:</h4>
+
+                    <label for="editClientId">Client ID</label>
+                    <br>
+                    <input id="editClientId" ng-model="editClientId" disabled>
+                    <br>
+
+                    <label for="editIdNbr">ID Number<span style="color:#FF0000; font-size:12px;" ng-show="newClientForm.idNbr.$error.required">*</span></label>
+                    <input id="editIdNbr" style="width: 350px" ng-model="editIdNbr" class="form-control" rows="2" maxlength="40" placeholder="Enter Client ID Number - max 40 alphanumeric characters" required><br>
+
+                    <label for="editIdDesc">Description<span style="color:#FF0000; font-size:12px;" ng-show="newClientForm.idDesc.$error.required">*</span></label>
+                    <input id="editIdDesc" style="width: 700px" ng-model="editIdDesc" class="form-control" rows="2" maxlength="200" placeholder="Enter ID type information - max 200 characters" required> <br>
+
+                    <label for="editIdDesc">First Name<span style="color:#FF0000; font-size:12px;" ng-show="newClientForm.firstName.$error.required">*</span></label>
+                    <input name="editFirstName" id="editFirstName" style="width: 700px" ng-model="editFirstName" class="form-control" rows="2" maxlength="200" placeholder="Enter Client first name - max 40 characters" required><br>
+
+                    <label for="editLastName">Last Name<span style="color:#FF0000; font-size:12px;" ng-show="newClientForm.lastName.$error.required">*</span></label>
+                    <input name="editLastName" id="editLastName" style="width: 700px" ng-model="editLastName" class="form-control" rows="2" maxlength="200" placeholder="Enter Client last name - max 40 characters" required> <br>
+
+                    <label for="editIdPhone">Telephone Number</label>
+                    <input id="editIdPhone" style="width: 350px" ng-model="editIdPhone" class="form-control" rows="2" maxlength="15" placeholder="999-999-9999">
+
+                    <br>
+                    <input type="submit" class="btn btn-primary">
+
+                    <br><br><p><span ng-show="editClientForm.$error.required" style="color:#FF0000; font-size:12px;"> *Please fill all required Fields</span></p>
+
+
+                </div>
+            </form>
+        </div>
+
+        <div ng-show="clientReport">
+            <!-- services used log table -->
+            <h4 class="text-info">Services used by client in the past.</h4>
+            <table class="table">
+                <thead>
+                <th>Description</th>
+                <th>Date</th>
+                <th>Site Number</th>
+                </thead>
+                <tr ng-repeat="record in serviceLog" class="">
+                    <td>{{record.description}}</td>
+                    <td>{{record.date_time}}</td>
+                    <td>{{record.site_number}}</td>
+                </tr>
+            </table>
+            <br>
+            <h4 class="text-info">Audit log for client</h4>
+            <table class="table">
+                <thead>
+                    <th>Description of Change</th>
+                    <th>Date</th>
+                </thead>
+                <tr ng-repeat="record in auditLog" class="">
+                    <td>{{record.change_description}}</td>
+                    <td>{{record.date_time}}</td>
+                </tr>
+            </table>
+            <br>
+            <h4 class="text-info">Client position in Waitlists</h4>
+            <table class="table">
+                <thead>
+                <th>Shelter Number</th>
+                <th>Client ID</th>
+                <th>Position</th>
+                </thead>
+                <tbody>
+                <tr ng-repeat="entry in waitListEntries">
+                    <td>{{entry.parent_shelter}}</td>
+                    <td>{{entry.client_id}}</td>
+                    <td>{{entry.wait_position}}</td>
+                </tr>
+                </tbody>
+            </table>
+            <br>
+            <div ng-show="shelterExists">
+                <h4 class="text-info">Add client to current Site's waitlist.</h4>
+                <button class="btn btn-primary" ng-click="clientCtrl.addToWaitlist();">Add</button>
+            </div>
+            <br>
+            <div>
+                <h4 class="text-info">Please briefly explain what services were provided to the client and any other notes.</h4>
+                <form ng-submit="clientCtrl.submitServicesUsed()" name="serviceReportForm">
+                    <label for="serviceReport">Services Used Report</label>
+                    <textarea id ="serviceReport" name="serviceReport" class="form-control" ng-model="serviceUsedReport" rows="2" maxlength="200" required></textarea>
+                    <br>
+                    <button class="btn btn-primary" ng-disabled="serviceReportForm.$invalid">Submit</button>
+                </form>
+            </div>
+        </div>
+
+
+
+        <!-- button to acknowledge when result limit exceeded -->
+        <div ng-show="tooManyResults">
+            <h5>The search criteria used returned too many results. Please refine your search.</h5>
+            <button class="btn btn-primary" ng-click="clientCtrl.hideAllOptions()">Acknowledge</button>
+        </div>
+
+        <!-- button to acknowledge no results returned -->
+        <div ng-show="noResults">
+            <h5>The search criteria produced no results. Please refine your search.</h5>
+            <button class="btn btn-primary" ng-click="clientCtrl.hideAllOptions()">Acknowledge</button>
+        </div>
+
+        <div ng-show="successMessage">
+            <h5 class="text-success">Your request was successful!</h5>
+            <button class="btn btn-primary" ng-click="clientCtrl.hideAllOptions()">Acknowledge</button>
+        </div>
+
+        <div ng-show="nonSuccessMessage">
+            <h5 class="text-warning">Your request was not successful!</h5>
+            <button class="btn btn-primary" ng-click="clientCtrl.hideAllOptions()">Acknowledge</button>
+        </div>
+
+        <div ng-show="clientPageError">
+            <h5 class="text-warning">Something went wrong. Please try again!</h5>
+            <button class="btn btn-primary" ng-click="clientCtrl.hideAllOptions()">Acknowledge</button>
+        </div>
+
+        <div ng-show="clientAlreadyInWaitList">
+            <h5 class="text-danger">This client is already in the waitlist!</h5>
+            <button class="btn btn-primary" ng-click="clientCtrl.hideAllOptions()">Acknowledge</button>
+        </div>
+
+    </div>
+
+</div>

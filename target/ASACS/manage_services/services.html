@@ -1,0 +1,322 @@
+<div ng-controller="servicesController as serviceCtrl">
+
+    <h2>Service Management</h2>
+
+    <nav class="navbar navbar-default">
+        <div class="container-fluid">
+            <ul class="nav navbar-nav">
+                <li><a href="home">Main Menu</a></li>
+                <li ng-class="{'active':addServ}" ng-click="serviceCtrl.checkAvailableService('add')"><a>Add Service</a></li>
+                <li ng-class="{'active':editServ}" ng-click="serviceCtrl.checkAvailableService('edit')"><a>Edit Service</a></li>
+                <li ng-class="{'active':deleteServ}" ng-click="serviceCtrl.checkAvailableService('delete')"><a>Delete Service</a></li>
+
+            </ul>
+        </div>
+    </nav>
+    <div class="container">
+        <!-- Loading div -->
+        <div ng-show="loadingResources">
+            <h3>Currently Loading resources...</h3>
+        </div>
+
+        <!-- create request -->
+        <!-- When you choose an option that value gets assigned to the servSelect var -->
+        <div ng-show="addServ" >
+            <h4>Add Services</h4>
+            <h5>These are the current services you can add to this site:</h5>
+            <form ng-submit="serviceCtrl.addService()">
+                <div class="form-check">
+
+                    <div ng-show="noFoodbankExists" class="radio">
+                        <input  type="radio" ng-model="servSelect" value="foodbank">Foodbank
+                    </div>
+
+                    <div ng-show="noPantryExists" class="radio">
+                        <input type="radio" ng-model="servSelect" value="pantry">Food Pantry
+                    </div>
+
+                    <div ng-show="noShelterExists" class="radio">
+                        <input  type="radio" ng-model="servSelect" value="shelter"> Shelter
+                    </div>
+
+                    <div ng-show="noKitchenExists" class="radio">
+                        <input type="radio" ng-model="servSelect" value="kitchen">Soup Kitchen
+                    </div>
+                    <br>
+                    <input type="submit" class="btn btn-primary">
+                </div>
+            </form>
+        </div>
+
+        <!-- show this if the site has all services already -->
+        <div ng-show="noServiceRemain">
+            <h5>This site has no services left to create.</h5>
+            <button class="btn btn-primary" ng-click="serviceCtrl.hideAllOptions()">Acknowledge</button>
+        </div>
+
+        <!-- form to add details for food pantry -->
+        <div ng-show="pantryDetail"  class="">
+            <form ng-submit="serviceCtrl.addPantry()" novalidate>
+                <div class="form-group-sm">
+                    <h4>Please add the following details for a new <strong>pantry</strong> and submit!</h4>
+
+                    <label for="pantryDesc">Description</label>
+                    <textarea id="pantryDesc" ng-model="pantryDesc" class="form-control" rows="2" maxlength="200"></textarea>
+
+                    <label for="pantryCond">Conditions</label>
+                    <textarea id="pantryCond" ng-model="pantryCond" class="form-control" rows="2" maxlength="200"></textarea>
+
+                    <label for="pantryHours">Hours</label>
+                    <textarea id="pantryHours" ng-model="pantryHours" class="form-control" rows="2" maxlength="200" required></textarea>
+                    <br>
+                    <input type="submit" class="btn btn-primary">
+                </div>
+            </form>
+        </div>
+
+        <!-- form to add details for shelter -->
+        <div ng-show="shelterDetail" class="">
+            <form ng-submit="serviceCtrl.addShelter()" novalidate>
+                <div class="form-group-sm">
+                    <h4>Please add the following details for a new <strong>shelter</strong> and submit!</h4>
+
+                    <label for="shelterDesc">Description</label>
+                    <textarea id="shelterDesc" ng-model="shelterDesc" class="form-control" rows="2" maxlength="200"></textarea>
+
+                    <label for="shelterCond">Conditions</label>
+                    <textarea id="shelterCond" ng-model="shelterCond" class="form-control" rows="2" maxlength="200"></textarea>
+
+                    <label for="shelterHours">Hours</label>
+                    <textarea id="shelterHours" ng-model="shelterHours" class="form-control" rows="2" maxlength="200" required></textarea>
+                    <br>
+                    <label for="shelterRooms">Rooms</label>
+                    <input type="number" id="shelterRooms" ng-model="shelterRooms" min="0" max="20" required>
+                    &nbsp;&nbsp;&nbsp;
+                    <label for="shelterBunks">Bunks</label>
+                    <input type="number" id="shelterBunks" ng-model="shelterBunks" min="0" max="50" required></br></br>
+
+                    <input type="submit" class="btn btn-primary">
+                </div>
+            </form>
+        </div>
+
+        <!-- form to add details for soup kitchen -->
+        <div ng-show="kitchenDetail"  class="">
+            <form ng-submit="serviceCtrl.addKitchen()" novalidate>
+                <div class="form-group-sm">
+                    <h4>Please add the following details for a new <strong>soup kitchen</strong> and submit!</h4>
+
+                    <label for="kitchenDesc">Description</label>
+                    <textarea id="kitchenDesc" ng-model="kitchenDesc" class="form-control" rows="2" maxlength="200"></textarea>
+
+                    <label for="kitchenCond">Conditions</label>
+                    <textarea id="kitchenCond" ng-model="kitchenCond" class="form-control" rows="2" maxlength="200"></textarea>
+
+                    <label for="kitchenHours">Hours</label>
+                    <textarea id="kitchenHours" ng-model="kitchenHours" class="form-control" rows="2" maxlength="200" required></textarea>
+
+                    <label for="kitchenCap">Seating Capacity</label>
+                    <input id="kitchenCap" ng-model="kitchenCap" class="form-control" type="number" max="10000" required>
+                    <br>
+                    <input type="submit" class="btn btn-primary">
+                </div>
+            </form>
+        </div>
+
+        <!-- notification that you are about to add a foodbank -->
+        <div ng-show="foodbankDetail">
+            <h4>You are about to add a <strong>foodbank</strong> to this site.</h4>
+            <button class="btn btn-primary" ng-click="serviceCtrl.addFoodbank()">Confirm</button>
+            <button class="btn btn-danger" ng-click="serviceCtrl.hideAllOptions()">Cancel</button>
+        </div>
+
+        <!-- edit services-->
+        <div ng-show="editServ" >
+            <h4>Edit Services</h4>
+            <h5>These are the current services this site has <strong>active</strong>. You may edit any of them:</h5>
+            <form ng-submit="serviceCtrl.editService()">
+                <div class="form-check">
+
+                    <div ng-show="!noFoodbankExists" class="radio">
+                        <input  type="radio" ng-model="servEdit" value="foodbank">Foodbank
+                    </div>
+
+                    <div ng-show="!noPantryExists" class="radio">
+                        <input type="radio" ng-model="servEdit" value="pantry">Food Pantry
+                    </div>
+
+                    <div ng-show="!noShelterExists" class="radio">
+                        <input  type="radio" ng-model="servEdit" value="shelter"> Shelter
+                    </div>
+
+                    <div ng-show="!noKitchenExists" class="radio">
+                        <input type="radio" ng-model="servEdit" value="kitchen">Soup Kitchen
+                    </div>
+
+                    <input type="submit" class="btn btn-primary">
+                </div>
+            </form>
+        </div>
+
+        <!-- form to edit pantries -->
+        <div ng-show="editPantryForm">
+            <form ng-submit="serviceCtrl.updatePantry()">
+                <div class="form-group-sm">
+                    <h4>Please edit the following details for the <strong>pantry</strong> and submit!</h4>
+
+                    <label for="parentSite">Site</label>
+                    <br>
+                    <input id="parentSite" ng-model="parentSite" disabled>
+                    <br>
+
+                    <label for="pantryEditDesc">Description</label>
+                    <textarea id="pantryEditDesc" ng-model="pantryEditDesc" class="form-control" rows="2" maxlength="200"></textarea>
+
+                    <label for="pantryEditCond">Conditions</label>
+                    <textarea id="pantryEditCond" ng-model="pantryEditCond" class="form-control" rows="2" maxlength="200"></textarea>
+
+                    <label for="pantryEditHours">Hours</label>
+                    <textarea id="pantryEditHours" ng-model="pantryEditHours" class="form-control" rows="2" maxlength="200" required></textarea>
+                    <br>
+                    <input type="submit" class="btn btn-primary">
+                </div>
+            </form>
+        </div>
+
+        <!-- form to edit shelters -->
+        <div ng-show="editShelterForm">
+            <form ng-submit="serviceCtrl.updateShelter()">
+                <div class="form-group-sm">
+                    <h4>Please edit the following details for the <strong>Shelter</strong> and submit!</h4>
+
+                    <label for="parentSite">Site</label>
+                    <br>
+                    <input id="parentSite" ng-model="parentSite" disabled>
+                    <br>
+
+                    <label for="shelterEditDesc">Description</label>
+                    <textarea id="shelterEditDesc" ng-model="shelterEditDesc" class="form-control" rows="2" maxlength="200"></textarea>
+
+                    <label for="shelterEditCond">Conditions</label>
+                    <textarea id="shelterEditCond" ng-model="shelterEditCond" class="form-control" rows="2" maxlength="200"></textarea>
+
+                    <label for="shelterEditHours">Hours</label>
+                    <textarea id="shelterEditHours" ng-model="shelterEditHours" class="form-control" rows="2" maxlength="200" required></textarea>
+                    <br>
+                    <input type="submit" class="btn btn-primary">
+                </div>
+            </form>
+        </div>
+
+        <!-- form to edit kitchens -->
+        <div ng-show="editKitchenForm">
+            <form ng-submit="serviceCtrl.updateKitchen()">
+                <div class="form-group-sm">
+                    <h4>Please edit the following details for the <strong>Soup Kitchen</strong> and submit!</h4>
+
+                    <label for="parentSite">Site</label>
+                    <br>
+                    <input id="parentSite" ng-model="parentSite" disabled>
+                    <br>
+
+                    <label for="kitchenEditDesc">Description</label>
+                    <textarea id="kitchenEditDesc" ng-model="kitchenEditDesc" class="form-control" rows="2" maxlength="200"></textarea>
+
+                    <label for="kitchenEditCond">Conditions</label>
+                    <textarea id="kitchenEditCond" ng-model="kitchenEditCond" class="form-control" rows="2" maxlength="200"></textarea>
+
+                    <label for="kitchenEditHours">Hours</label>
+                    <textarea id="kitchenEditHours" ng-model="kitchenEditHours" class="form-control" rows="2" maxlength="200" required></textarea>
+
+                    <label for="kitchenEditCap">Seating Capacity</label>
+                    <input id="kitchenEditCap" ng-model="kitchenEditCap" class="form-control" type="number" max="10000" required>
+
+                    <br>
+                    <input type="submit" class="btn btn-primary">
+                </div>
+            </form>
+        </div>
+
+        <!-- button to acknowledge you can not edit a foodbank -->
+        <div ng-show="editFoodbank">
+            <h5>There is nothing to edit in a foodbank's information.</h5>
+            <button class="btn btn-primary" ng-click="serviceCtrl.hideAllOptions()">Acknowledge</button>
+        </div>
+
+        <!-- Delete service menu -->
+        <div ng-show="deleteServ" >
+            <h4>Delete Services</h4>
+            <h5>These are the current services this site has <strong>active</strong>.</h5>
+            <h6>You may delete any of them as long as it is not the last service for a site.</h6>
+            <form ng-submit="serviceCtrl.deleteService()">
+                <div class="form-check">
+
+                    <div ng-show="!noFoodbankExists" class="radio">
+                        <input  type="radio" ng-model="servDelete" value="foodbank">Foodbank
+                    </div>
+
+                    <div ng-show="!noPantryExists" class="radio">
+                        <input type="radio" ng-model="servDelete" value="pantry">Food Pantry
+                    </div>
+
+                    <div ng-show="!noShelterExists" class="radio">
+                        <input  type="radio" ng-model="servDelete" value="shelter"> Shelter
+                    </div>
+
+                    <div ng-show="!noKitchenExists" class="radio">
+                        <input type="radio" ng-model="servDelete" value="kitchen">Soup Kitchen
+                    </div>
+
+                    <input type="submit" class="btn btn-primary">
+                </div>
+            </form>
+        </div>
+
+        <!-- Delete confirmation views for all the services -->
+        <div ng-show="deleteFoodbankConfirm">
+            <h4 class="text-danger">You are about to delete this site's foodbank. Are you sure you want to continue?</h4>
+            <br>
+            <button class="btn btn-primary" ng-click="serviceCtrl.deleteFoodbank()">Confirm</button>
+            <button class="btn btn-primary" ng-click="serviceCtrl.hideAllOptions()">Cancel</button>
+        </div>
+
+        <div ng-show="deletePantryConfirm">
+            <h4 class="text-danger">You are about to delete this site's pantry. Are you sure you want to continue?</h4>
+            <br>
+            <button class="btn btn-primary" ng-click="serviceCtrl.deletePantry()">Confirm</button>
+            <button class="btn btn-primary" ng-click="serviceCtrl.hideAllOptions()">Cancel</button>
+        </div>
+
+        <div ng-show="deleteKitchenConfirm">
+            <h4 class="text-danger">You are about to delete this site's soup kitchen. Are you sure you want to continue?</h4>
+            <br>
+            <button class="btn btn-primary" ng-click="serviceCtrl.deleteKitchen()">Confirm</button>
+            <button class="btn btn-primary" ng-click="serviceCtrl.hideAllOptions()">Cancel</button>
+        </div>
+
+        <div ng-show="deleteShelterConfirm">
+            <h4 class="text-danger">You are about to delete this site's shelter. Are you sure you want to continue?</h4>
+            <br>
+            <button class="btn btn-primary" ng-click="serviceCtrl.deleteShelter()">Confirm</button>
+            <button class="btn btn-primary" ng-click="serviceCtrl.hideAllOptions()">Cancel</button>
+        </div>
+
+        <!-- Shown if the user tries to delete the last service in the site -->
+        <div ng-show="lastServiceWarning">
+            <h4 class="text-warning">You can not delete the last service a site provides</h4>
+            <button class="btn btn-primary" ng-click="serviceCtrl.hideAllOptions()">Acknowledge</button>
+        </div>
+
+        <!-- Shown if a request was successfully sent -->
+        <div ng-show="successMessage">
+            <h5 class="text-success">Your request was successful!</h5>
+            <button class="btn btn-primary" ng-click="serviceCtrl.hideAllOptions()">Acknowledge</button>
+        </div>
+        <!-- Shown if a request was unsuccessfully sent -->
+        <div ng-show="nonSuccessMessage">
+            <h5 class="warning-text">Your request was successful!</h5>
+            <button class="btn btn-primary" ng-click="serviceCtrl.hideAllOptions()">Acknowledge</button>
+        </div>
+    </div>
+
+</div>

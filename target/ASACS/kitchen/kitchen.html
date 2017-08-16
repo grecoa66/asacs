@@ -1,0 +1,125 @@
+<div ng-controller="kitchenController as kitchenCtrl" ng-init="kitchenCtrl.getSoupKitchen()">
+
+    <h2>Soup Kitchen Management</h2>
+
+    <nav class="navbar navbar-default">
+        <div class="container-fluid">
+            <ul class="nav navbar-nav">
+                <li><a href="home">Main Menu</a></li>
+                <li ng-class="{'disabled': noKitchenMessage, 'active':clientCheckIn}" ng-click="kitchenCtrl.showOption('clientCheckIn')"><a>Client Check In</a></li>
+                <li ng-class="{'disabled': noKitchenMessage, 'active':updateSeats}" ng-click="kitchenCtrl.showOption('updateSeats')"><a>Update Seat Capacity</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- show this when loading api data -->
+        <div ng-show="loadingResources">
+            <h3>Currently Loading resources...</h3>
+        </div >
+
+        <!-- show this when the check in is done -->
+        <div ng-show="clientCheckInSuccess">
+            <h4 class="text-success">Client Checked In Successfully</h4>
+            <button class="btn btn-primary" ng-click="kitchenCtrl.cleanUp()">Acknowledge</button>
+        </div>
+
+        <!-- Shown if user entered value over 10000 -->
+        <div ng-show="invalidSeatsMessage">
+            <h5 class="warning-text">Enter a value between 0 and 10000.</h5>
+        </div>
+
+        <!-- update seats -->
+        <div ng-show="updateSeats" >
+            <label for="kitchenEditCap">Change Seating Capacity</label>
+            <input id="kitchenEditCap" ng-model="kitchenEditCap" class="form-control" type="number" min="0" max="10000" required>
+
+            <button ng-click="kitchenCtrl.updateSoupKitchen()">Update</button>
+        </div>
+
+        <!-- Shown if a request was successfully sent -->
+        <div ng-show="successMessage">
+            <h5 class="text-success">Your request was successful!</h5>
+            <button class="btn btn-primary" ng-click="kitchenCtrl.hideAllOptions()">Acknowledge</button>
+        </div>
+        <!-- Shown if a request was unsuccessfully sent -->
+        <div ng-show="nonSuccessMessage">
+            <h5 class="warning-text">Your request failed. Please try again later.</h5>
+            <button class="btn btn-primary" ng-click="kitchenCtrl.hideAllOptions()">Acknowledge</button>
+        </div>
+        <!-- Shown if this site does not have a soup kitchen -->
+        <div ng-show="noKitchenMessage">
+            <h5 class="warning-text">This site does not have a soup kitchen. Please go to Manage Service if you wish to add it.</h5>
+            <button class="btn btn-primary" ng-click="kitchenCtrl.hideAllOptions()">Acknowledge</button>
+        </div>
+
+        <!-- error for all general failures -->
+        <div ng-show="kitchenError">
+            <h5 class="warning-text">There was a problem processing your request. Please try again.</h5>
+            <button class="btn btn-primary" ng-click="kitchenCtrl.cleanUp()">Acknowledge</button>
+        </div>
+
+        <!-- forms to search for clients -->
+        <div ng-show="clientSearchInputForm">
+            <div>
+                <form ng-submit="kitchenCtrl.searchClientByName()" name="searchClientNameForm">
+                    <h3>Search for client by last name</h3>
+                    <input type="text" ng-model="clientLastName" required>
+                    <button class="btn btn-primary" ng-disabled="searchClientNameForm.$invalid">Search</button>
+                </form>
+            </div>
+            <div>
+                <form ng-submit="kitchenCtrl.searchClientByID()" name="searchClientIdForm">
+                    <h3>Search for client by ID</h3>
+                    <input type="text" ng-model="clientID" required>
+                    <button class="btn btn-primary" ng-disabled="searchClientIdForm.$invalid">Search</button>
+                </form>
+            </div>
+        </div>
+        <!-- a list of clients to chose from -->
+        <div ng-show="clientList" >
+            <form ng-submit="kitchenCtrl.serviceLogUpdate()">
+                <table class="table">
+                    <thead>
+                    <th></th>
+                    <th>Client ID</th>
+                    <th>ID Description</th>
+                    <th>First Name</th>
+                    <th>Last Name</th>
+                    <th>Phone Number</th>
+                    </thead>
+                    <tbody>
+                    <tr ng-repeat="client in clients">
+                        <td>
+                            <input type="radio" ng-model="$parent.checkInClientID" ng-value="client.client_id">
+                        </td>
+                        <td>{{client.client_id}}</td>
+                        <td>{{client.id_desc}}</td>
+                        <td>{{client.first_name}}</td>
+                        <td>{{client.last_name}}</td>
+                        <td>{{client.phone_number}}</td>
+                    </tr>
+                    </tbody>
+                </table>
+                <button class="btn btn-primary" ng-disabled="!checkInClientID">Check Client In</button>
+                <br>
+                <br>
+                <h6 class="text-info">Notice: Only 5 results will be shown at a time. If your result does not appear, please start over and try a more specific search.</h6>
+            </form>
+        </div>
+
+        <!-- fill this out for services used log -->
+        <div ng-show="newServicesUsedReport">
+            <h4 class="text-info">Please briefly explain what services were provided to the client and any other notes.</h4>
+            <form ng-submit="kitchenCtrl.submitServicesUsed()" name="serviceReportForm">
+                <label for="serviceReport">Services Used Report</label>
+                <textarea id ="serviceReport" name="serviceReport" class="form-control" ng-model="serviceUsedReport" rows="2" maxlength="200" required></textarea>
+                <br>
+                <button class="btn btn-primary" ng-disabled="serviceReportForm.$invalid">Submit</button>
+            </form>
+        </div>
+
+
+
+    </div>
+</div>

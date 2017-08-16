@@ -1,0 +1,755 @@
+<div ng-controller="foodbankController as fbCtrl" ng-init="fbCtrl.checkLocalFoodbank(); fbCtrl.getAllOtherSites()">
+
+    <h2>Foodbank Management</h2>
+
+    <style>p.paddingL { padding-left: 1cm}</style>
+
+    <nav class="navbar navbar-default">
+        <div class="container-fluid">
+            <ul class="nav navbar-nav">
+                <li><a href="home">Main Menu</a></li>
+                <li ng-class="{'active':requestStatus}" ng-click="fbCtrl.requestStatus()"><a>Request Status</a></li>
+                <li ng-disabled="!localFoodbankExists" ng-class="{'active':outRequest ,'disabled': !localFoodbankExists}" ng-click="fbCtrl.outstandingRequests()"><a>Outstanding Request</a></li>
+                <li ng-class="{'active':viewInv}" ng-click="fbCtrl.showOption('viewInv')"><a>View Inventory</a></li>
+                <li ng-class="{'active':addInv ,'disabled': !localFoodbankExists}" ng-click="fbCtrl.showOption('addInv')"><a>Add Inventory</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Loading Div -->
+    <div class="container">
+    <div ng-show="loadingResources">
+        <h3>Currently Loading resources...</h3>
+    </div>
+    </div>
+
+        <!-- create request -->
+    <div class="container">
+        <div ng-show="createRequest" >
+            <form name="genRequest" ng-submit="fbCtrl.createRequest()">
+                <div class="form-group-sm">
+                    <h4>Please Adjust Quantity of Items and Submit Request.</h4>
+
+                    <label for="genReqItemID">Item ID</label><br/>
+                    <input id="genReqItemID" ng-model="genReqItemID" disabled>
+                    <br/>
+                    <label for="genReqItemName">Name</label><br/>
+                    <textarea id="genReqItemName" ng-model="genReqItemName" class="form-control" rows="1" maxlength="150" disabled></textarea>
+
+                    <label for="genReqItemUnits">Units</label><br/>
+                    <input id="genReqItemUnits" ng-model="genReqItemUnits" type="number" min="1" max={{genReqCurrUnits}} required></input><br/>
+
+                    <label for="genReqItemExp">Expiration</label><br/>
+                    <div ng-show="genReqItemExp == '9999-01-01'">
+                        <input id="genReqItemExp" value="Non-Expiring" disabled>
+                    </div>
+                    <div ng-show="fbCtrl.getInvDate(genReqItemExp) < todaysDate" ng-style="{color:'red'}">
+                        <input id="genReqItemExp" ng-model="genReqItemExp" disabled>
+                    </div>
+                    <div ng-show="fbCtrl.getInvDate(genReqItemExp) >= todaysDate && genReqItemExp != '9999-01-01'">
+                        <input id="genReqItemExp" ng-model="genReqItemExp" disabled>
+                    </div>
+
+                    <br/><button ng-disabled="!genRequest.$valid" ng-click="submit()" class="btn btn-primary">Submit</button>
+                </div>
+            </form>
+            <br/><button ng-click="fbCtrl.hideAllOptions(); fbCtrl.showOption('viewInv'); fbCtrl.showOption('showExtInv');" class="btn btn-primary">Cancel</button>
+        </div>
+    </div>
+
+        <!-- Request Status-->
+    <div class="container">
+        <div ng-show="requestStatus" >
+            <br/><p class="paddingL"><strong>Request Status:</strong></p>
+            <table border="0" class="table">
+                <thead>
+                <th>
+                    <a href="#" ng-click="sortType = 'request_id'; sortReverse = !sortReverse"> Request
+                        <span ng-show="sortType != 'request_id'">&nbsp;&nbsp;</span>
+                        <span ng-show="sortType == 'request_id' && !sortReverse">&#x25BC;</span>
+                        <span ng-show="sortType == 'request_id' && sortReverse">&#x25B2;</span>
+                    </a>
+                </th>
+                <th>
+                    <a href="#" ng-click="sortType = 'item_name'; sortReverse = !sortReverse"> Item Name
+                        <span ng-show="sortType != 'item_name'">&nbsp;&nbsp;</span>
+                        <span ng-show="sortType == 'item_name' && !sortReverse">&#x25BC;</span>
+                        <span ng-show="sortType == 'item_name' && sortReverse">&#x25B2;</span>
+                    </a>
+                </th>
+                <th>
+                    <a href="#" ng-click="sortType = 'requested_units'; sortReverse = !sortReverse"> Units Requested
+                        <span ng-show="sortType != 'requested_units'">&nbsp;&nbsp;</span>
+                        <span ng-show="sortType == 'requested_units' && !sortReverse">&#x25BC;</span>
+                        <span ng-show="sortType == 'requested_units' && sortReverse">&#x25B2;</span>
+                    </a>
+                </th>
+                <th>
+                    <a href="#" ng-click="sortType = 'fulfilled_units'; sortReverse = !sortReverse"> Units Filled
+                        <span ng-show="sortType != 'fulfilled_units'">&nbsp;&nbsp;</span>
+                        <span ng-show="sortType == 'fulfilled_units' && !sortReverse">&#x25BC;</span>
+                        <span ng-show="sortType == 'fulfilled_units' && sortReverse">&#x25B2;</span>
+                    </a>
+                </th>
+                <th>
+                    <a href="#" ng-click="sortType = 'fullfilling_foodbank'; sortReverse = !sortReverse"> Foodbank
+                        <span ng-show="sortType != 'fullfilling_foodbank'">&nbsp;&nbsp;</span>
+                        <span ng-show="sortType == 'fullfilling_foodbank' && !sortReverse">&#x25BC;</span>
+                        <span ng-show="sortType == 'fullfilling_foodbank' && sortReverse">&#x25B2;</span>
+                    </a>
+                </th>
+                <th>
+                    <a href="#" ng-click="sortType = 'requesting_user'; sortReverse = !sortReverse"> Requester
+                        <span ng-show="sortType != 'requesting_user'">&nbsp;&nbsp;</span>
+                        <span ng-show="sortType == 'requesting_user' && !sortReverse">&#x25BC;</span>
+                        <span ng-show="sortType == 'requesting_user' && sortReverse">&#x25B2;</span>
+                    </a>
+                </th>
+                <th>
+                    <a href="#" ng-click="sortType = 'approving_user'; sortReverse = !sortReverse"> Approver
+                        <span ng-show="sortType != 'approving_user'">&nbsp;&nbsp;</span>
+                        <span ng-show="sortType == 'approving_user' && !sortReverse">&#x25BC;</span>
+                        <span ng-show="sortType == 'approving_user' && sortReverse">&#x25B2;</span>
+                    </a>
+                </th>
+                <th>
+                    <a href="#" ng-click="sortType = 'request_status'; sortReverse = !sortReverse"> Status
+                        <span ng-show="sortType != 'request_status'">&nbsp;&nbsp;</span>
+                        <span ng-show="sortType == 'request_status' && !sortReverse">&#x25BC;</span>
+                        <span ng-show="sortType == 'request_status' && sortReverse">&#x25B2;</span>
+                    </a>
+                </th>
+                <th> Cancel Request </th>
+                </thead>
+                <tbody>
+                <tr ng-repeat="reqStat in requests" >
+                    <td>{{reqStat.request_id}}</td>
+                    <td>{{reqStat.item_name}}</td>
+                    <td>{{reqStat.requested_units}}</td>
+                    <td>{{reqStat.fulfilled_units}}</td>
+                    <td>{{reqStat.fulfilling_foodbank}}</td>
+                    <td>
+                        <div ng-show="reqStat.requesting_user == user_name">
+                            <strong>{{reqStat.requesting_user}}</strong>
+                        </div>
+                        <div ng-show="reqStat.requesting_user != user_name">
+                            {{reqStat.requesting_user}}
+                        </div>
+                    </td>
+                    <td>{{reqStat.approving_user}}</td>
+                    <td>
+                        <div ng-show="reqStat.request_status == 'unable'" ng-style="{color:'red'}">
+                            {{reqStat.request_status}}
+                        </div>
+                        <div ng-show="reqStat.request_status == 'full'" ng-style="{color:'green'}">
+                            {{reqStat.request_status}}
+                        </div>
+                        <div ng-show="reqStat.request_status == 'partial'" ng-style="{color:'green'}">
+                            {{reqStat.request_status}}
+                        </div>
+                        <div ng-show="reqStat.request_status == 'pending'">
+                            {{reqStat.request_status}}
+                        </div>
+                    </td>
+                    <td><button ng-disabled="!reqStat.cancellable" class="btn btn-primary" ng-click="fbCtrl.cancelRequest(reqStat.request_id)">Cancel</button></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+        <!-- Outstanding Request -->
+    <div class="container">
+        <div ng-show="outRequest" >
+            <br/><p class="paddingL"><strong>Outstanding Requests:</strong></p>
+            <table class="table">
+                <thead>
+                <th>
+                    <a href="#" ng-click="sortType = 'request_id'; sortReverse = !sortReverse"> Request
+                        <span ng-show="sortType != 'request_id'">&nbsp;&nbsp;</span>
+                        <span ng-show="sortType == 'request_id' && !sortReverse">&#x25BC;</span>
+                        <span ng-show="sortType == 'request_id' && sortReverse">&#x25B2;</span>
+                    </a>
+                </th>
+                <th>
+                    <a href="#" ng-click="sortType = 'item_name'; sortReverse = !sortReverse"> Item Name
+                        <span ng-show="sortType != 'item_name'">&nbsp;&nbsp;</span>
+                        <span ng-show="sortType == 'item_name' && !sortReverse">&#x25BC;</span>
+                        <span ng-show="sortType == 'item_name' && sortReverse">&#x25B2;</span>
+                    </a>
+                </th>
+                <th>
+                    <a href="#" ng-click="sortType = 'requested_units'; sortReverse = !sortReverse"> Units Requested
+                        <span ng-show="sortType != 'requested_units'">&nbsp;&nbsp;</span>
+                        <span ng-show="sortType == 'requested_units' && !sortReverse">&#x25BC;</span>
+                        <span ng-show="sortType == 'requested_units' && sortReverse">&#x25B2;</span>
+                    </a>
+                </th>
+                <th>
+                    <a href="#" ng-click="sortType = 'fulfilled_units'; sortReverse = !sortReverse"> Units Filled
+                        <span ng-show="sortType != 'fulfilled_units'">&nbsp;&nbsp;</span>
+                        <span ng-show="sortType == 'fulfilled_units' && !sortReverse">&#x25BC;</span>
+                        <span ng-show="sortType == 'fulfilled_units' && sortReverse">&#x25B2;</span>
+                    </a>
+                </th>
+                <th>
+                    <a href="#" ng-click="sortType = 'requesting_foodbank'; sortReverse = !sortReverse"> Requesting Site
+                        <span ng-show="sortType != 'requesting_foodbank'">&nbsp;&nbsp;</span>
+                        <span ng-show="sortType == 'requesting_foodbank' && !sortReverse">&#x25BC;</span>
+                        <span ng-show="sortType == 'requesting_foodbank' && sortReverse">&#x25B2;</span>
+                    </a>
+                </th>
+                <th>
+                    <a href="#" ng-click="sortType = 'available_units'; sortReverse = !sortReverse"> Available
+                        <span ng-show="sortType != 'available_units'">&nbsp;&nbsp;</span>
+                        <span ng-show="sortType == 'available_units' && !sortReverse">&#x25BC;</span>
+                        <span ng-show="sortType == 'available_units' && sortReverse">&#x25B2;</span>
+                    </a>
+                </th>
+                <th>
+                    <a href="#" ng-click="sortType = 'request_status'; sortReverse = !sortReverse"> Status
+                        <span ng-show="sortType != 'request_status'">&nbsp;&nbsp;</span>
+                        <span ng-show="sortType == 'request_status' && !sortReverse">&#x25BC;</span>
+                        <span ng-show="sortType == 'request_status' && sortReverse">&#x25B2;</span>
+                    </a>
+                </th>
+                <th>
+                    &nbsp;&nbsp; Fill  /  Unable
+                </th>
+                </thead>
+                <tbody>
+                <tr ng-repeat="outStat in requests | orderBy:sortType:sortReverse" >
+                    <td>{{outStat.request_id}}</td>
+                    <td>{{outStat.item_name}}</td>
+                    <td>{{outStat.requested_units}}</td>
+                    <td>{{outStat.fulfilled_units}}</td>
+                    <td>{{outStat.requesting_foodbank}}</td>
+                    <td>
+                    <div ng-show="outStat.available_units > outStat.requested_units" ng-style="{color:'green'}">
+                        <strong>{{outStat.available_units}}</strong>
+                    </div>
+                    <div ng-show="outStat.requested_units >= outStat.available_units" ng-style="{color:'red'}">
+                        <strong>{{outStat.available_units}}</strong>
+                    </div>
+                    </td>
+                    <td>{{outStat.request_status}}</td>
+                    <td><button ng-disabled="!(outStat.available_units > 0)" class="btn btn-primary" ng-click="fbCtrl.fillRequest(outStat.request_id)">Fill</button>
+                    &nbsp;<button class="btn btn-primary" ng-click="fbCtrl.rejectRequest(outStat.request_id)">Unable</button></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+        <!-- Form to Fill Request -->
+    <div class="container">
+        <div ng-show="fillReq" >
+            <form name="fulfillReq" ng-submit="fbCtrl.updateRequest(fillRequestID, fillTheseUnits, fillFulfilledUnits, fillAvailableUnits, fillRequestedUnits, fillItemID)">
+                <div class="form-group-sm">
+                    <h4>Please update the number of units to fill request and submit!</h4>
+
+                    <label for="fillRequestID">Request ID</label><br/>
+                    <input id="fillRequestID" ng-model="fillRequestID" disabled><br/>
+
+                    <label for="fillItemName">Name</label><br/>
+                    <textarea id="fillItemName" ng-model="fillItemName" class="form-control" rows="1" maxlength="150" disabled></textarea>
+
+                    <label for="fillRequestingFoodbank">Requesting Foodbank</label><br/>
+                    <input id="fillRequestingFoodbank" ng-model="fillRequestingFoodbank" rows="1" disabled><br/>
+
+                    <label for="fillRequestStatus">Current Request Status</label><br/>
+                    <input id="fillRequestStatus" ng-model="fillRequestStatus" rows="1" disabled><br/>
+
+                    <label for="fillRequestedUnits">Requested Units</label><br/>
+                    <input id="fillRequestedUnits" ng-model="fillRequestedUnits" disabled><br/>
+
+                    <label for="fillFulfilledUnits">Previously Fulfilled Units</label><br/>
+                    <input id="fillFulfilledUnits" ng-model="fillFulfilledUnits" style="font-weight: bold;" disabled><br/>
+
+                    <label for="fillAvailableUnits">Available Units</label><br/>
+                    <div ng-show="fillAvailableUnits < fillRequestedUnits">
+                        <input id="fillAvailableUnits" value={{fillAvailableUnits}} ng-style="{color:'red', 'font-weight':'bold'}" disabled><br/>
+                    </div>
+                    <div ng-show="fillAvailableUnits >= fillRequestedUnits">
+                        <input id="fillAvailableUnits" value={{fillAvailableUnits}} ng-style="{color:'green', 'font-weight':'bold'}" disabled><br/>
+                    </div>
+
+                    <label for="fillTheseUnits">Fill Units</label><br/>
+                    <input id="fillTheseUnits" ng-model="fillTheseUnits" value={{maxfill}} type="number" min="0" max={{maxfill}} required><br/>
+
+                    <br/><button ng-disabled="!fulfillReq.$valid" ng-click="submit()" class="btn btn-primary">Fill</button>
+                </div>
+            </form>
+            <br/><button ng-click="fbCtrl.hideAllOptions(); fbCtrl.showOption('outRequest');" class="btn btn-primary">Cancel</button>
+        </div>
+    </div>
+
+        <!-- View Inventory -->
+        <div ng-show="viewInv" >
+            <div class="container-fluid">
+                <button ng-disabled="!localFoodbankExists" ng-click="fbCtrl.getLocalInventory('local')" class="btn btn-primary">Local Inventory</button>
+                <button ng-click="fbCtrl.getExternalInventory('external')" class="btn btn-primary">External Inventory</button>
+            </div>
+        </div>
+
+        <!-- Show Local Inventory -->
+        <div ng-show="showLocalInv">
+            <br/><p class="paddingL"><strong>Local Inventory:</strong> Select Row to Edit Item </p>
+            <table class="table">
+                <thead>
+                <tr>
+                    <th>
+                        <input type="text" ng-model="searchName" ng-change="change(text)" placeholder="Search Item Name" />
+                    </th>
+                    <th>
+                        <label>Archived</label>
+                        <input type="checkbox" ng-model="archived" id="archived" ng-change="change(archived)"></input>
+                        <!--<input type="number" ng-style="{width:'70px'}" min="0" max="10000" ng-model="unitsMin" ng-change="change(range)" placeholder="Min" />
+                        <input type="number" ng-style="{width:'70px'}" min={{unitsMin}} max="10000 " ng-model="unitsMax" ng-change="change(number)" placeholder="Max" />-->
+                    </th>
+                    <th ng-style="{width:'260px'}">
+                        <label>Non-Expiring
+                            <input ng-disabled="searchExp" type="checkbox" id="searchNonExp" ng-model="searchNonExp" data-ng-change="fbCtrl.setNonExpDate(searchNonExp); change(searchNonExp);">
+                        </label>
+                        <label>Expired
+                            <input ng-disabled="searchNonExp" type="checkbox" id="searchExp" ng-model="searchExp" data-ng-change="fbCtrl.setExpiredDate(searchExp); change(searchExp);">
+                        </label>
+                        <form name="expDateForm" ng-submit="change(expDateForm)">
+                            <div ng-disabled="searchExp">
+                                <input type="date" ng-disabled="searchExp || searchNonExp" ng-style="{width:'90px'}" name="expDateMin" id="expDateMin" ng-model="expDateMin" placeholder="Min Date" max="9999-01-01"></input>
+                                <input type="date" ng-disabled="searchExp || searchNonExp" ng-style="{width:'90px'}" name="expDateMax" id="expDateMax" ng-model="expDateMax" placeholder="Max Date" max="9999-01-01"></input>
+                                <button ng-disabled="!(expDateForm.expDateMin.$valid && expDateForm.expDateMax.$valid) || !!((expDateForm.expDateMin.length > 1) || (expDateForm.expDateMax.length > 1))" ng-style="{width:'50px', height:'34px'}" ng-click="submit()" class="btn btn-primary">Go</button>
+                            </div>
+                        </form>
+                    </th>
+                    <th>
+                        <select ng-disabled="foodType.length > 0 || supplyType.length > 0" ng-model="foodSupply" ng-change="change(foodSupply)">
+                            <option value="">Food/Supply</option>
+                            <option value="food">Food</option>
+                            <option value="supply">Supply</option>
+                        </select>
+                    </th>
+                    <th>
+                        <select ng-model="storageType" ng-change="change(storageType)">
+                            <option value="">Storage Type</option>
+                            <option value="dry good">Dry Good</option>
+                            <option value="frozen">Frozen</option>
+                            <option value="refrigerated">Refrigerated</option>
+                        </select>
+                    </th>
+                    <th>
+                        <select ng-disabled="foodType.length > 0 || foodSupply == 'food'" ng-model="supplyType" ng-change="change(supplyType)">
+                            <option value="">Supply Type</option>
+                            <option value="personal hygiene">Personal Hygiene</option>
+                            <option value="clothing">Clothing</option>
+                            <option value="shelter">Shelter</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </th>
+                    <th>
+                        <select ng-disabled="supplyType.length > 0 || foodSupply == 'supply'" ng-model="foodType" ng-change="change(foodType)">
+                            <option value="">Food Type</option>
+                            <option value="vegetables">Vegetables</option>
+                            <option value="nuts/grains/beans">Nuts/Grains/Beans</option>
+                            <option value="meat/seafood">Meat/Seafood</option>
+                            <option value="dairy/eggs">Dairy/Eggs</option>
+                            <option value="sauce/condiment/seasoning">Sauce/Condiment/Seasoning</option>
+                            <option value="juice/drink">Juice/Drink</option>
+                        </select>
+                    </th>
+                </tr>
+                <tr>
+                    <th>
+                        <a href="#" ng-click="sortType = 'item_name'; sortReverse = !sortReverse"> Name
+                            <span ng-show="sortType != 'item_name'">&nbsp;&nbsp;</span>
+                            <span ng-show="sortType == 'item_name' && !sortReverse">&#x25BC;</span>
+                            <span ng-show="sortType == 'item_name' && sortReverse">&#x25B2;</span>
+                        </a>
+                    </th>
+                    <th>
+                        <a href="#" ng-click="sortType = 'units'; sortReverse = !sortReverse"> Units
+                            <span ng-show="sortType != 'units'">&nbsp;&nbsp;</span>
+                            <span ng-show="sortType == 'units' && !sortReverse">&#x25BC;</span>
+                            <span ng-show="sortType == 'units' && sortReverse">&#x25B2;</span>
+                        </a>
+                    </th>
+                    <th>
+                        <a href="#" ng-click="sortType = 'exp_date'; sortReverse = !sortReverse"> Expiration
+                            <span ng-show="sortType != 'exp_date'">&nbsp;&nbsp;</span>
+                            <span ng-show="sortType == 'exp_date' && !sortReverse">&#x25BC;</span>
+                            <span ng-show="sortType == 'exp_date' && sortReverse">&#x25B2;</span>
+                        </a>
+                    </th>
+                    <th>
+                        <a href="#" ng-click="sortType = 'foodorsupply'; sortReverse = !sortReverse"> Food/Supply
+                            <span ng-show="sortType != 'foodorsupply'">&nbsp;&nbsp;</span>
+                            <span ng-show="sortType == 'foodorsupply' && !sortReverse">&#x25BC;</span>
+                            <span ng-show="sortType == 'foodorsupply' && sortReverse">&#x25B2;</span>
+                        </a>
+                    </th>
+                    <th>
+                        <a href="#" ng-click="sortType = 'storage_type'; sortReverse = !sortReverse"> Storage Type
+                            <span ng-show="sortType != 'storage_type'">&nbsp;&nbsp;</span>
+                            <span ng-show="sortType == 'storage_type' && !sortReverse">&#x25BC;</span>
+                            <span ng-show="sortType == 'storage_type' && sortReverse">&#x25B2;</span>
+                        </a>
+                    </th>
+                    <th>
+                        <a href="#" ng-click="sortType = 'supply_type'; sortReverse = !sortReverse"> Supply Type
+                            <span ng-show="sortType != 'supply_type'">&nbsp;&nbsp;</span>
+                            <span ng-show="sortType == 'supply_type' && !sortReverse">&#x25BC;</span>
+                            <span ng-show="sortType == 'supply_type' && sortReverse">&#x25B2;</span>
+                        </a>
+                    </th>
+                    <th>
+                        <a href="#" ng-click="sortType = 'food_type'; sortReverse = !sortReverse"> Food Type
+                            <span ng-show="sortType != 'food_type'">&nbsp;&nbsp;</span>
+                            <span ng-show="sortType == 'food_type' && !sortReverse">&#x25BC;</span>
+                            <span ng-show="sortType == 'food_type' && sortReverse">&#x25B2;</span>
+                        </a>
+                    </th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr ng-class="rollClass" ng-repeat="item in inventory | orderBy:sortType:sortReverse" ng-click="fbCtrl.editLocalItem(item.item_id)" ng-mouseenter="rollClass = 'bg-info'" ng-mouseleave="rollClass = ''">
+                    <td>{{item.item_name}}</td>
+                    <td>{{item.units}}</td>
+                    <td>
+                        <div ng-show="item.exp_date == '9999-01-01'">
+                            Non-Expiring
+                        </div>
+                        <div ng-show="fbCtrl.getInvDate(item.exp_date) < todaysDate" ng-style="{color:'red'}">
+                            {{item.exp_date}}
+                        </div>
+                        <div ng-show="fbCtrl.getInvDate(item.exp_date) >= todaysDate && item.exp_date != '9999-01-01'">
+                            {{item.exp_date}}
+                        </div>
+                    </td>
+                    <td>{{item.foodorsupply}}</td>
+                    <td>{{item.storage_type}}</td>
+                    <td>{{item.supply_type}}</td>
+                    <td>{{item.food_type}}</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Show External Inventory -->
+        <div ng-show="showExtInv" >
+            <br/><p class="paddingL"><strong>External Inventory:</strong> Select a Row to Create a Request</p>
+            <table class="table">
+                <thead>
+                <tr>
+                    <th>
+                        <input type="text" ng-model="searchName" ng-change="change(text)" placeholder="Search Item Name" />
+                    </th>
+                    <th>
+                        &nbsp;
+                        <!--<input type="number" ng-style="{width:'70px'}" min="0" max="10000" ng-model="unitsMin" ng-change="change(range)" placeholder="Min" />
+                        <input type="number" ng-style="{width:'70px'}" min={{unitsMin}} max="10000 " ng-model="unitsMax" ng-change="change(number)" placeholder="Max" />-->
+                    </th>
+                    <th ng-style="{width:'260px'}">
+                        <label>Non-Expiring
+                            <input ng-disabled="searchExp" type="checkbox" id="searchNonExp" ng-model="searchNonExp" data-ng-change="fbCtrl.setNonExpDate(searchNonExp); change(searchNonExp);">
+                        </label>
+                        <label>Expired
+                            <input ng-disabled="searchNonExp" type="checkbox" id="searchExp" ng-model="searchExp" data-ng-change="fbCtrl.setExpiredDate(searchExp); change(searchExp);">
+                        </label>
+                        <form name="expDateForm" ng-submit="change(expDateForm)">
+                            <div ng-disabled="searchExp">
+                                <input type="date" ng-disabled="searchExp || searchNonExp" ng-style="{width:'90px'}" name="expDateMin" id="expDateMin" ng-model="expDateMin" placeholder="Min Date" max="9999-01-01"></input>
+                                <input type="date" ng-disabled="searchExp || searchNonExp" ng-style="{width:'90px'}" name="expDateMax" id="expDateMax" ng-model="expDateMax" placeholder="Max Date" max="9999-01-01"></input>
+                                <button ng-disabled="!(expDateForm.expDateMin.$valid && expDateForm.expDateMax.$valid) || !!((expDateForm.expDateMin.length > 1) || (expDateForm.expDateMax.length > 1))" ng-style="{width:'50px', height:'34px'}" ng-click="submit()" class="btn btn-primary">Go</button>
+                            </div>
+                        </form>
+                    </th>
+                    <th>
+                        <select ng-disabled="foodType.length > 0 || supplyType.length > 0" ng-model="foodSupply" ng-change="change(foodSupply)">
+                            <option value="">Food/Supply</option>
+                            <option value="food">Food</option>
+                            <option value="supply">Supply</option>
+                        </select>
+                    </th>
+                    <th>
+                        <select ng-model="storageType" ng-change="change(storageType)">
+                            <option value="">Storage Type</option>
+                            <option value="dry good">Dry Good</option>
+                            <option value="frozen">Frozen</option>
+                            <option value="refrigerated">Refrigerated</option>
+                        </select>
+                    </th>
+                    <th>
+                        <select ng-disabled="foodType.length > 0 || foodSupply == 'food'" ng-model="supplyType" ng-change="change(supplyType)">
+                            <option value="">Supply Type</option>
+                            <option value="personal hygiene">Personal Hygiene</option>
+                            <option value="clothing">Clothing</option>
+                            <option value="shelter">Shelter</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </th>
+                    <th>
+                        <select ng-disabled="supplyType.length > 0 || foodSupply == 'supply'" ng-model="foodType" ng-change="change(foodType)">
+                            <option value="">Food Type</option>
+                            <option value="vegetables">Vegetables</option>
+                            <option value="nuts/grains/beans">Nuts/Grains/Beans</option>
+                            <option value="meat/seafood">Meat/Seafood</option>
+                            <option value="dairy/eggs">Dairy/Eggs</option>
+                            <option value="sauce/condiment/seasoning">Sauce/Condiment/Seasoning</option>
+                            <option value="juice/drink">Juice/Drink</option>
+                        </select>
+                    </th>
+                    <th>
+                        <label for="parentSite"></label>
+                        <select name="parentSite" id="parentSite" ng-model="parentSite" ng-init=" parentSite = allOtherSites[0].value" ng-options="site.value as site.label for site in allOtherSites" ng-change="change(parentSite)">
+                        </select>
+                    </th>
+                </tr>
+                <tr>
+                    <th>
+                        <a href="#" ng-click="sortType = 'item_name'; sortReverse = !sortReverse"> Name
+                            <span ng-show="sortType != 'item_name'">&nbsp;&nbsp;</span>
+                            <span ng-show="sortType == 'item_name' && !sortReverse">&#x25BC;</span>
+                            <span ng-show="sortType == 'item_name' && sortReverse">&#x25B2;</span>
+                        </a>
+                    </th>
+                    <th>
+                        <a href="#" ng-click="sortType = 'units'; sortReverse = !sortReverse"> Units
+                            <span ng-show="sortType != 'units'">&nbsp;&nbsp;</span>
+                            <span ng-show="sortType == 'units' && !sortReverse">&#x25BC;</span>
+                            <span ng-show="sortType == 'units' && sortReverse">&#x25B2;</span>
+                        </a>
+                    </th>
+                    <th>
+                        <a href="#" ng-click="sortType = 'exp_date'; sortReverse = !sortReverse"> Expiration
+                            <span ng-show="sortType != 'exp_date'">&nbsp;&nbsp;</span>
+                            <span ng-show="sortType == 'exp_date' && !sortReverse">&#x25BC;</span>
+                            <span ng-show="sortType == 'exp_date' && sortReverse">&#x25B2;</span>
+                        </a>
+                    </th>
+                    <th>
+                        <a href="#" ng-click="sortType = 'foodorsupply'; sortReverse = !sortReverse"> Food/Supply
+                            <span ng-show="sortType != 'foodorsupply'">&nbsp;&nbsp;</span>
+                            <span ng-show="sortType == 'foodorsupply' && !sortReverse">&#x25BC;</span>
+                            <span ng-show="sortType == 'foodorsupply' && sortReverse">&#x25B2;</span>
+                        </a>
+                    </th>
+                    <th>
+                        <a href="#" ng-click="sortType = 'storage_type'; sortReverse = !sortReverse"> Storage Type
+                            <span ng-show="sortType != 'storage_type'">&nbsp;&nbsp;</span>
+                            <span ng-show="sortType == 'storage_type' && !sortReverse">&#x25BC;</span>
+                            <span ng-show="sortType == 'storage_type' && sortReverse">&#x25B2;</span>
+                        </a>
+                    </th>
+                    <th>
+                        <a href="#" ng-click="sortType = 'supply_type'; sortReverse = !sortReverse"> Supply Type
+                            <span ng-show="sortType != 'supply_type'">&nbsp;&nbsp;</span>
+                            <span ng-show="sortType == 'supply_type' && !sortReverse">&#x25BC;</span>
+                            <span ng-show="sortType == 'supply_type' && sortReverse">&#x25B2;</span>
+                        </a>
+                    </th>
+                    <th>
+                        <a href="#" ng-click="sortType = 'food_type'; sortReverse = !sortReverse"> Food Type
+                            <span ng-show="sortType != 'food_type'">&nbsp;&nbsp;</span>
+                            <span ng-show="sortType == 'food_type' && !sortReverse">&#x25BC;</span>
+                            <span ng-show="sortType == 'food_type' && sortReverse">&#x25B2;</span>
+                        </a>
+                    </th>
+                    <th>
+                        <a href="#" ng-click="sortType = 'site_name'; sortReverse = !sortReverse"> Site Name
+                            <span ng-show="sortType != 'site_name'">&nbsp;&nbsp;</span>
+                            <span ng-show="sortType == 'site_name' && !sortReverse">&#x25BC;</span>
+                            <span ng-show="sortType == 'site_name' && sortReverse">&#x25B2;</span>
+                        </a>
+                    </th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr ng-class="rollClass" ng-repeat="item in inventory | orderBy:sortType:sortReverse" ng-click="fbCtrl.generateRequest(item.item_id)" ng-mouseenter="rollClass = 'bg-info'" ng-mouseleave="rollClass = ''">
+                    <td>{{item.item_name}}</td>
+                    <td>{{item.units}}</td>
+                    <td>
+                        <div ng-show="item.exp_date == '9999-01-01'">
+                            Non-Expiring
+                        </div>
+                        <div ng-show="fbCtrl.getInvDate(item.exp_date) < todaysDate" ng-style="{color:'red'}">
+                            {{item.exp_date}}
+                        </div>
+                        <div ng-show="fbCtrl.getInvDate(item.exp_date) >= todaysDate && item.exp_date != '9999-01-01'">
+                            {{item.exp_date}}
+                        </div>
+                    </td>
+                    <td>{{item.foodorsupply}}</td>
+                    <td>{{item.storage_type}}</td>
+                    <td>{{item.supply_type}}</td>
+                    <td>{{item.food_type}}</td>
+                    <td>{{item.site_name}}</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Add Inventory -->
+    <div class="container">
+        <div ng-disabled="!localFoodbankExists" ng-show="addInv" >
+            <div class="container-fluid">
+                <button ng-click="fbCtrl.addFoodItem('addFood')" class="btn btn-primary"> Food Item </button>
+                <button ng-click="fbCtrl.addSupplyItem('addSupply')" class="btn btn-primary"> Supply Item </button>
+            </div>
+        </div>
+    </div>
+
+        <!-- form to add New Food Item -->
+    <div class="container">
+        <div ng-show="addFood">
+            <form name="food" ng-submit="fbCtrl.insertNewItem()">
+                <div class="form-group-sm">
+                    <h4>Please add the following details for a new <strong>Food Item</strong> and submit!</h4>
+
+                    <label for="itemName">Name</label><br/>
+                    <textarea id="itemName" ng-model="itemName" class="form-control" rows="1" maxlength="150" required></textarea>
+
+                    <label for="itemUnits">Units</label><br/>
+                    <input id="itemUnits" ng-model="itemUnits" type="number" min="1" max="10000" required></input><br/>
+
+                    <label>Expiring?
+                        <input type="checkbox" id="foodDate" ng-model="foodDate" data-ng-change="fbCtrl.setNonExpDate(foodDate)">
+                    </label><br/>
+                    <div ng-disabled="foodDate" ng-show="foodDate">
+                        <label for="itemExp"> Expiration Date: </label><br/>
+                        <input type="date" name="itemExp" id="itemExp" ng-model="itemExp" placeholder="yyyy-MM-dd" max="9999-01-01" required></input>
+                    </div>
+                    <div ng-disabled="foodDate" ng-show="foodDate" role="alert">
+                        <span class="error" ng-show="food.itemExp.$error.required">Required!</span>
+                        <span class="error" ng-show="food.itemExp.$error.date">Not a Valid Date!</span>
+                        <br/>
+                    </div>
+
+                    <label for="storageType">Storage Type</label><br/>
+                    <select id="storageType" ng-model="storageType" required>
+                        <option value="">--Please Select--</option>
+                        <option value="dry good">Dry Good</option>
+                        <option value="frozen">Frozen</option>
+                        <option value="refrigerated">Refrigerated</option>
+                    </select>
+                    <br/>
+
+                    <label for="foodType">Food Type</label><br/>
+                    <select id="foodType" ng-model="foodType" required>
+                        <option value="">--Please Select--</option>
+                        <option value="vegetables">Vegetables</option>
+                        <option value="nuts/grains/beans">Nuts/Grains/Beans</option>
+                        <option value="meat/seafood">Meat/Seafood</option>
+                        <option value="dairy/eggs">Dairy/Eggs</option>
+                        <option value="sauce/condiment/seasoning">Sauce/Condiment/Seasoning</option>
+                        <option value="juice/drink">Juice/Drink</option>
+                    </select>
+
+                    <br/><br/><button ng-disabled="!food.$valid" ng-click="submit()" class="btn btn-primary">Add</button>
+                </div>
+            </form>
+            <br/><button ng-click="fbCtrl.hideAllOptions(); fbCtrl.showOption('addInv');" class="btn btn-primary">Cancel</button>
+        </div>
+    </div>
+
+        <!-- Form to add New Supply Item -->
+    <div class="container">
+        <div ng-show="addSupply">
+            <form name="supply" ng-submit="fbCtrl.insertNewItem()">
+                <div class="form-group-sm">
+                    <h4>Please add the following details for a new <strong>Supply Item</strong> and submit!</h4>
+
+                    <label for="itemName">Name</label><br/>
+                    <textarea id="itemName" ng-model="itemName" class="form-control" rows="1" maxlength="150" required></textarea>
+
+                    <label for="itemUnits">Units</label><br/>
+                    <input id="itemUnits" ng-model="itemUnits" type="number" min="1" max="10000" required></input><br/>
+
+                    <label>Expiring?
+                        <input type="checkbox" id="supplyDate" ng-model="supplyDate" data-ng-change="fbCtrl.setNonExpDate(supplyDate)">
+                    </label><br/>
+                    <div ng-disabled="supplyDate" ng-show="supplyDate">
+                        <label for="itemExp"> Expiration Date: </label><br/>
+                        <input type="date" name="itemExp" id="itemExp" ng-model="itemExp" placeholder="yyyy-MM-dd" max="9999-01-01" required></input>
+                    </div>
+                    <div ng-disabled="supplyDate" ng-show="supplyDate" role="alert">
+                        <span class="error" ng-show="supply.itemExp.$error.required">Required!</span>
+                        <span class="error" ng-show="supply.itemExp.$error.date">Not a Valid Date!</span>
+                        <br/>
+                    </div>
+
+                    <label for="storageType">Storage Type</label><br/>
+                    <select id="storageType" ng-model="storageType" required>
+                        <option value="">--Please Select--</option>
+                        <option value="dry good">Dry Good</option>
+                        <option value="frozen">Frozen</option>
+                        <option value="refrigerated">Refrigerated</option>
+                    </select>
+                    <br/>
+
+                    <label for="supplyType">Supply Type</label><br/>
+                    <select id="supplyType" ng-model="supplyType" required>
+                        <option value="">--Please Select--</option>
+                        <option value="personal hygiene">Personal Hygiene</option>
+                        <option value="clothing">Clothing</option>
+                        <option value="shelter">Shelter</option>
+                        <option value="other">Other</option>
+                    </select>
+
+                    <br/><br/><button ng-disabled="!supply.$valid" ng-click="submit()" class="btn btn-primary">Add</button>
+                </div>
+            </form>
+            <br/><button ng-click="fbCtrl.hideAllOptions(); fbCtrl.showOption('addInv');" class="btn btn-primary">Cancel</button>
+        </div>
+    </div>
+
+        <!-- Form to Edit Item -->
+    <div class="container">
+        <div ng-show="editInv">
+            <form name="editItem" ng-submit="fbCtrl.updateItem()">
+                <div class="form-group-sm">
+                    <h4>Please update the following details for the Item and submit!</h4>
+
+                    <label for="editItemID">Item ID</label><br/>
+                    <input id="editItemID" ng-model="editItemID" disabled>
+                    <br/>
+                    <label for="editItemName">Name</label><br/>
+                    <textarea id="editItemName" ng-model="editItemName" class="form-control" rows="1" maxlength="150" disabled></textarea>
+
+                    <label for="editItemUnits">Units</label><br/>
+                    <input id="editItemUnits" ng-model="editItemUnits" type="number" min="0" max="10000" required></input><br/>
+
+                    <label for="editItemExp">Expiration</label><br/>
+                    <div ng-show="editItemExp == '9999-01-01'">
+                        <input id="editItemExp" value="Non-Expiring" disabled>
+                    </div>
+                    <div ng-show="fbCtrl.getInvDate(editItemExp) < todaysDate" ng-style="{color:'red'}">
+                        <input id="editItemExp" ng-model="editItemExp" disabled>
+                    </div>
+                    <div ng-show="fbCtrl.getInvDate(editItemExp) >= todaysDate && editItemExp != '9999-01-01'">
+                        <input id="editItemExp" ng-model="editItemExp" disabled>
+                    </div>
+
+                    <br/><button ng-disabled="!editItem.$valid" ng-click="submit()" class="btn btn-primary">Update</button>
+                </div>
+            </form>
+            <br/><button ng-click="fbCtrl.hideAllOptions(); fbCtrl.showOption('viewInv'); fb.Ctrl.showOption('showLocalInv');" class="btn btn-primary">Cancel</button>
+        </div>
+    </div>
+
+        <!-- Shown if a request was successfully sent -->
+    <div class="container">
+        <div ng-show="successMessage">
+            <h5 class="text-success">Your request was successful!</h5>
+            <button class="btn btn-primary" ng-click="fbCtrl.hideAllOptions()">Acknowledge</button>
+        </div>
+    </div>
+        <!-- Shown if a request was unsuccessfully sent -->
+    <div class="container">
+        <div ng-show="nonSuccessMessage">
+            <h5 class="warning-text">Your request failedl!</h5>
+            <button class="btn btn-primary" ng-click="fbCtrl.hideAllOptions()">Acknowledge</button>
+        </div>
+    </div>
+
+    <!--</div>-->
+</div>

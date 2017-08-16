@@ -1,0 +1,505 @@
+<div ng-controller="shelterController as shelterCtrl" ng-init="shelterCtrl.checkForShelter();">
+
+    <h2>Shelter Management</h2>
+
+    <nav class="navbar navbar-default">
+        <div class="container-fluid">
+            <ul class="nav navbar-nav">
+
+                <li><a href="home">Main Menu</a></li>
+                <li ng-click="shelterCtrl.checkClientInForms('checkIn');
+                    shelterCtrl.setMenuOption('clientCheckIn') "
+                    ng-class="{'active':clientCheckIn, 'disabled': disableMenu}">
+                    <a>Client Check In</a>
+                </li>
+                <li ng-click="shelterCtrl.checkClientInForms('checkOut');
+                    shelterCtrl.setMenuOption('clientCheckOut') "
+                    ng-class="{'active':clientCheckOut , 'disabled': disableMenu}">
+                    <a>Client Check Out</a>
+                </li>
+                <li ng-click="shelterCtrl.viewRooms();
+                    shelterCtrl.setMenuOption('viewRoom') "
+                    ng-class="{'active':viewRoom , 'disabled': disableMenu}">
+                    <a>View Rooms</a>
+                </li>
+                <li ng-click="shelterCtrl.editRooms();
+                    shelterCtrl.setMenuOption('editRoom') "
+                    ng-class="{'active':editRoom , 'disabled': disableMenu}">
+                    <a>Edit Rooms</a>
+                </li>
+                <li ng-click="shelterCtrl.viewBunks();
+                    shelterCtrl.setMenuOption('viewBunk') "
+                    ng-class="{'active': viewBunk , 'disabled': disableMenu}">
+                    <a>View Bunks</a>
+                </li>
+                <li ng-click="shelterCtrl.editBunks();
+                    shelterCtrl.setMenuOption('editBunk') "
+                    ng-class="{'active': editBunk , 'disabled': disableMenu}">
+                    <a>Edit Bunks</a>
+                </li>
+                <li ng-click="shelterCtrl.viewWaitList();
+                shelterCtrl.setMenuOption('viewWaitList')"
+                ng-class="{'active': viewWaitList , 'disabled': disableMenu}">
+                    <a>View Wait-list</a>
+                </li>
+                <li ng-click="shelterCtrl.editWaitlist();
+                    shelterCtrl.setMenuOption('editWaitList')"
+                    ng-class="{'active': editWaitList , 'disabled': disableMenu}">
+                    <a>Edit Wait-list</a>
+                </li>
+                <li ng-click="shelterCtrl.checkClientInForms('addWaitList');
+                    shelterCtrl.setMenuOption('addWaitList')"
+                    ng-class="{'active': addWaitList , 'disabled': disableMenu}">
+                    <a>Add Client to Wait-list</a>
+                </li>
+                <li ng-click="shelterCtrl.getClientInWaitList();
+                    shelterCtrl.setMenuOption('removeWaitList')"
+                    ng-class="{'active': removeWaitList , 'disabled': disableMenu}">
+                    <a>Remove Client from Wait-list</a>
+                </li>
+
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- show this when loading api data -->
+        <div ng-show="loadingResources">
+            <h3>Currently Loading resources...</h3>
+        </div >
+
+        <!-- show when there is an error -->
+        <div ng-show="shelterPageError">
+            <h4 class="text-danger">An Error has occurred</h4>
+            <button class="btn btn-primary" ng-click="shelterCtrl.cleanUp()">Acknowledge</button>
+        </div>
+
+        <!-- show this when the check in is done -->
+        <div ng-show="clientCheckInSuccess">
+            <h4 class="text-success">Client Checked In Successfully</h4>
+            <button class="btn btn-primary" ng-click="shelterCtrl.cleanUp()">Acknowledge</button>
+        </div>
+
+        <!-- client added to waitlist -->
+        <div ng-show="clientCheckInWaitSuccessful">
+            <h4 class="text-success">Client Added to Waitlist Successfully</h4>
+            <button class="btn btn-primary" ng-click="shelterCtrl.cleanUp()">Acknowledge</button>
+        </div>
+        <!-- client removed from waitlists -->
+        <div ng-show="clientRemoveWaitSuccessful">
+            <h4 class="text-success">Client Removed fom Waitlist Successfully</h4>
+            <button class="btn btn-primary" ng-click="shelterCtrl.cleanUp()">Acknowledge</button>
+        </div>
+
+        <div ng-show="clientInWaitListError">
+            <h4 class="text-danger">Client is already in wait list for this shelter</h4>
+            <button class="btn btn-primary" ng-click="shelterCtrl.cleanUp()">Acknowledge</button>
+        </div>
+
+        <div ng-show="clientNotInWaitListError">
+            <h4 class="text-danger">Client is not in the wait list</h4>
+            <button class="btn btn-primary" ng-click="shelterCtrl.cleanUp()">Acknowledge</button>
+        </div>
+
+
+        <!-- successful client checkout -->
+        <div ng-show="successfulCheckOut">
+            <h4 class="text-success">Client Checked Out Successfully</h4>
+            <button class="btn btn-primary" ng-click="shelterCtrl.cleanUp()">Acknowledge</button>
+        </div>
+
+        <!-- banner for no rooms available -->
+        <div ng-show="noRoomAvailable">
+            <h4 class="text-danger">This Shelter has no rooms!</h4>
+            <button class="btn btn-primary" ng-click="shelterCtrl.cleanUp()">Acknowledge</button>
+        </div>
+
+        <!-- banner for no rooms available -->
+        <div ng-show="noBunksAvailable">
+            <h4 class="text-danger">This Shelter has no Bunks!</h4>
+            <button class="btn btn-primary" ng-click="shelterCtrl.cleanUp()">Acknowledge</button>
+        </div>
+
+        <!-- option for waitlist -->
+        <div ng-show="waitListOption">
+            <h4 class="text-warning"> There are no rooms available. Do you wish to add the client to the room wait list?</h4>
+            <button class="btn btn-primary" ng-click="shelterCtrl.addClientToWaitlist()">Confirm</button>
+            <button class="btn btn-warning" ng-click="shelterCtrl.cleanUp()">Deny</button>
+        </div>
+
+        <!-- general success message -->
+        <div ng-show="generalSuccess">
+            <h4 class="text-success">Request Sent Successfully!</h4>
+            <button class="btn btn-primary" ng-click="shelterCtrl.cleanUp()">Acknowledge</button>
+        </div>
+
+        <!-- forms to search for clients -->
+        <div ng-show="clientSearchInputForm">
+            <div>
+                <form ng-submit="shelterCtrl.searchClientByName()" name="searchClientNameForm">
+                    <h3>Search for client by last name</h3>
+                    <input type="text" ng-model="clientLastName" required>
+                    <button class="btn btn-primary" ng-disabled="searchClientNameForm.$invalid">Search</button>
+                </form>
+            </div>
+            <div>
+                <form ng-submit="shelterCtrl.searchClientByID()" name="searchClientIdForm">
+                    <h3>Search for client by ID</h3>
+                    <input type="text" ng-model="clientID" required>
+                    <button class="btn btn-primary" ng-disabled="searchClientIdForm.$invalid">Search</button>
+                </form>
+            </div>
+        </div>
+        <!-- a list of clients to chose from -->
+        <div ng-show="clientList" >
+            <form ng-submit="shelterCtrl.checkClientServiceLog()">
+                <table class="table">
+                    <thead>
+                        <th></th>
+                        <th>Client ID</th>
+                        <th>ID Description</th>
+                        <th>First Name</th>
+                        <th>Last Name</th>
+                        <th>Phone Number</th>
+                    </thead>
+                    <tbody>
+                        <tr ng-repeat="client in clients">
+                            <td>
+                                <input type="radio" ng-model="$parent.checkInClientID" ng-value="client.client_id">
+                            </td>
+                            <td>{{client.client_id}}</td>
+                            <td>{{client.id_desc}}</td>
+                            <td>{{client.first_name}}</td>
+                            <td>{{client.last_name}}</td>
+                            <td>{{client.phone_number}}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <button ng-show="checkInButton" class="btn btn-primary" ng-disabled="!checkInClientID">Start Client Check In</button>
+                <button ng-show="checkOutButton" class="btn btn-primary" ng-disabled="!checkInClientID">Check Client Out</button>
+                <button ng-show="waitListAddButton" class="btn btn-primary" ng-disabled="!checkInClientID">Add to Wait List</button>
+                <button ng-show="waitListRemoveButton" class="btn btn-primary" ng-disabled="!checkInClientID">Remove Client From Wait List</button>
+                <br>
+                <br>
+                <h6 class="text-info">Notice: Only 5 results will be shown at a time. If your result does not appear, please start over and try a more specific search.</h6>
+            </form>
+        </div>
+
+        <!-- client preference selection -->
+        <div ng-show="clientCheckInPref">
+            <form ng-submit="shelterCtrl.showAvailability()">
+                <h5>What arrangements would the client like?</h5>
+                <input type="radio" ng-model="clientShelterPref" value="bunk">Bunk
+                <br>
+                <input type="radio" ng-model="clientShelterPref" value="room">Room
+                <br>
+                <button class="btn btn-primary">Check Availability</button>
+            </form>
+        </div>
+
+        <!-- list of available rooms -->
+        <div ng-show="availRoomsTable">
+            <form ng-submit="shelterCtrl.checkClientIn()">
+                <table class="table">
+                    <thead>
+                        <th></th>
+                        <th>Room Number</th>
+                        <th>Site Name</th>
+                    </thead>
+                    <tbody>
+                        <tr ng-repeat="room in availRooms">
+                            <td><input type="radio" name="room" ng-model="$parent.selectClientRoom" value="{{room.room_id}}"></td>
+                            <td>{{room.room_id}}</td>
+                            <td>{{room.site_name}}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <br>
+                <button class="btn btn-primary">Check Client In</button>
+            </form>
+        </div>
+
+        <!-- table for view rooms, has no select options -->
+        <div ng-show="viewRoomsTable">
+            <table class="table">
+                <thead>
+                <th>Room Number</th>
+                <th>Site Name</th>
+                <th>Occupied</th>
+                <th>Occupying Client</th>
+                </thead>
+                <tbody>
+                <tr ng-repeat="room in availRooms">
+                    <td>{{room.room_id}}</td>
+                    <td>{{room.site_name}}</td>
+                    <td>{{room.occupied}}</td>
+                    <td>{{room.occupying_client}}</td>
+                </tr>
+                </tbody>
+            </table>
+            <br>
+            <button class="btn btn-primary" ng-click="shelterCtrl.cleanUp()">Acknowledge</button>
+        </div>
+
+        <!-- table for editing rooms -->
+        <div ng-show="editRoomsTable">
+            <table class="table">
+                <thead>
+                <th></th>
+                <th>Room Number</th>
+                <th>Site Name</th>
+                <th>Occupied</th>
+                <th>Occupying Client</th>
+                </thead>
+                <tbody>
+                <tr ng-repeat="room in availRooms">
+                    <td>
+                        <input type="radio" name="room" ng-model="$parent.selectEditRoom" value="{{room}}">
+                    </td>
+                    <td>{{room.room_id}}</td>
+                    <td>{{room.site_name}}</td>
+                    <td>{{room.occupied}}</td>
+                    <td>{{room.occupying_client}}</td>
+                </tr>
+                </tbody>
+            </table>
+            <br>
+            <button class="btn btn-primary" ng-click="shelterCtrl.editRoomForm()">Submit</button>
+            <button class="btn btn-primary" ng-click="shelterCtrl.cleanUp()">Cancel</button>
+        </div>
+
+        <!-- edit area for editing rooms -->
+        <div ng-show="editRoomForm">
+            <form ng-submit="shelterCtrl.submitRoomUpdate()">
+                <div class="form-group-sm">
+                    <h4>Edit Room</h4>
+
+                    <label for="parentSite">Room ID</label>
+                    <input class="form-control" id="roomId" ng-model="selectEditRoom.room_id" disabled>
+
+                    <br>
+
+                    <label for="parentSite">Shelter ID</label>
+                    <br>
+                    <input class="form-control" id="parentSite" ng-model="selectEditRoom.parent_shelter" disabled>
+
+                    <br>
+
+                    <label for="occupied">Occupied</label>
+                    <br>
+                    <input class="form-control" id="occupied" ng-model="selectEditRoom.occupied" type="checkbox">
+
+                    <br>
+
+                    <label for="client">Occupying Client ID</label>
+                    <br>
+                    <input class="form-control" id="client" ng-model="selectEditRoom.occupying_client" type="number">
+
+                    <button class="btn btn-primary">Submit</button>
+                    <button class="btn btn-danger" ng-click="shelterCtrl.cleanUp()">Cancel</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- list of available bunks -->
+        <div ng-show="availBunksTable">
+            <form ng-submit="shelterCtrl.checkClientIn()">
+                <table class="table">
+                    <thead>
+                        <th></th>
+                        <th>Bunk Number</th>
+                        <th>Site Name</th>
+                        <th>Bunk Type</th>
+                    </thead>
+                    <tbody>
+                        <tr ng-repeat="bunk in availBunks">
+                            <td>
+                                <input type="radio" ng-model="$parent.selectClientBunk" ng-value="{{bunk}}">
+                            </td>
+                            <td>{{bunk.bunk_id}}</td>
+                            <td>{{bunk.site_name}}</td>
+                            <td>{{bunk.bunk_type}}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <br>
+                <button class="btn btn-primary">Check Client In</button>
+            </form>
+        </div>
+
+        <!-- fill this out for services used log -->
+        <div ng-show="newServicesUsedReport">
+            <h4 class="text-info">Please briefly explain what services were provided to the client and any other notes.</h4>
+            <form ng-submit="shelterCtrl.submitServicesUsed()" name="serviceReportForm">
+                <label for="serviceReport">Services Used Report</label>
+                <textarea id ="serviceReport" name="serviceReport" class="form-control" ng-model="serviceUsedReport" rows="2" maxlength="200" required></textarea>
+                <br>
+                <button class="btn btn-primary" ng-disabled="serviceReportForm.$invalid">Submit</button>
+            </form>
+        </div>
+
+        <!-- audit log table -->
+        <div ng-show="auditLogTable">
+              <table class="table">
+                  <thead>
+                      <th>Description</th>
+                      <th>Date</th>
+                  </thead>
+                  <tr ng-repeat="record in auditLog" class="">
+                      <td>{{record.change_description}}</td>
+                      <td>{{record.date_time}}</td>
+                  </tr>
+              </table>
+        </div>
+
+        <!-- view wait list table -->
+        <div ng-show="waitListTable">
+            <table class="table">
+                <thead>
+                    <th>Parent Shelter</th>
+                    <th>Client ID</th>
+                    <th>Client Name</th>
+                    <th>Position</th>
+                </thead>
+                <tbody>
+                    <tr ng-repeat="entry in waitListEntries">
+                        <td>{{entry.parent_shelter}}</td>
+                        <td>{{entry.client_id}}</td>
+                        <td>{{entry.client_name}}</td>
+                        <td>{{entry.wait_position}}</td>
+                    </tr>
+                </tbody>
+            </table>
+            <button ng-click="shelterCtrl.cleanUp()" class="btn btn-primary">Acknowledge</button>
+        </div>
+
+        <!-- table for all the clients that are currently in waitlist -->
+        <div ng-show="clientsInWaitlist">
+            <table class="table">
+                <thead>
+                <th></th>
+                <th>Parent Shelter</th>
+                <th>Client ID</th>
+                <th>Client Name</th>
+                <th>Position</th>
+                </thead>
+                <tbody>
+                <tr ng-repeat="entry in clientInWaitlist">
+                    <th><input type="radio" ng-model="$parent.checkInClientID" value="{{entry.client_id}} "></th>
+                    <td>{{entry.parent_shelter}}</td>
+                    <td>{{entry.client_id}}</td>
+                    <td>{{entry.client_name}}</td>
+                    <td>{{entry.wait_position}}</td>
+                </tr>
+                </tbody>
+            </table>
+            <button class="btn btn-danger" ng-click="shelterCtrl.removeClientWaitList();">Remove Client</button>
+        </div>
+
+        <div ng-show="clientEditWaitlistTable">
+            <table class="table">
+                <thead>
+                <th></th>
+                <th>Parent Shelter</th>
+                <th>Client ID</th>
+                <th>Client Name</th>
+                <th>Position</th>
+                </thead>
+                <tbody>
+                <tr ng-repeat="entry in clientsInEditWaitlist">
+                    <th><input type="radio" ng-model="$parent.editWaitlistSelect" value="{{entry.client_id}} "></th>
+                    <td>{{entry.parent_shelter}}</td>
+                    <td>{{entry.client_id}}</td>
+                    <td>{{entry.client_name}}</td>
+                    <td>{{entry.wait_position}}</td>
+                </tr>
+                </tbody>
+            </table>
+            <button class="btn btn-primary" ng-click="shelterCtrl.moveClientWaitList('up');">Move Client Up</button>
+            <button class="btn btn-primary" ng-click="shelterCtrl.moveClientWaitList('down');">Move Client Down</button>
+        </div>
+
+        <!-- table to show all the bunks for the site -->
+
+        <div ng-show="allBunks">
+            <table class="table">
+                <thead>
+                    <th>Bunk ID</th>
+                    <th>Parent Shelter</th>
+                    <th>Occupying Client</th>
+                    <th>occupied</th>
+                    <th>Bunk Type</th>
+                </thead>
+                <tbody>
+                    <tr ng-repeat="bunk in allBunksArr">
+                        <td>{{bunk.bunk_id}}</td>
+                        <td>{{bunk.site_name}}</td>
+                        <td>{{bunk.occupying_client}}</td>
+                        <td>{{bunk.occupied}}</td>
+                        <td>{{bunk.bunk_type}}</td>
+                    </tr>
+                </tbody>
+            </table>
+            <button ng-click="shelterCtrl.cleanUp()" class="btn btn-primary">Acknowledge</button>
+        </div>
+
+        <div ng-show="allBunksEdit">
+            <table class="table">
+                <thead>
+                <th></th>
+                <th>Bunk ID</th>
+                <th>Parent Shelter</th>
+                <th>Occupying Client</th>
+                <th>occupied</th>
+                <th>Bunk Type</th>
+                </thead>
+                <tbody>
+                <tr ng-repeat="bunk in allBunksArr">
+                    <th><input type="radio" ng-model="$parent.selectEditBunk" value="{{bunk}}"></th>
+                    <td>{{bunk.bunk_id}}</td>
+                    <td>{{bunk.site_name}}</td>
+                    <td>{{bunk.occupying_client}}</td>
+                    <td>{{bunk.occupied}}</td>
+                    <td>{{bunk.bunk_type}}</td>
+                </tr>
+                </tbody>
+            </table>
+            <button ng-click="shelterCtrl.editBunksForm()" class="btn btn-primary">Edit Bunk</button>
+            <button ng-click="shelterCtrl.cleanUp()" class="btn btn-danger">Cancel</button>
+        </div>
+
+
+        <!-- edit area for editing rooms -->
+        <div ng-show="editBunkForm">
+            <form ng-submit="shelterCtrl.submitBunkUpdate()" name="bunkEditForm">
+                <div class="form-group-sm">
+                    <h4>Edit Bunk</h4>
+                    <label for="bunkId">Room ID</label>
+                    <input class="form-control" id="bunkId" ng-model="selectEditBunk.bunk_id" disabled>
+
+                    <label for="parentSite">Shelter ID</label>
+                    <input class="form-control" id="parentSite" ng-model="selectEditBunk.parent_shelter" disabled>
+
+                    <label for="occupied">Occupied</label>
+                    <input class="form-control" id="occupied" ng-model="selectEditBunk.occupied" type="checkbox">
+
+                    <label for="client">Occupying Client ID</label>
+                    <input class="form-control" id="client" ng-model="selectEditBunk.occupying_client"
+                           type="number" min="0" data-toggle="tooltip" data-placement="right" title="Enter a client">
+
+                    <label for="bunkType">Bunk Type</label>
+
+                    <select class="form-control" id="bunkType" ng-model="selectEditBunk.bunk_type" type="drop" required>
+                        <option value="mixed">Mixed</option>
+                        <option value="male only">Male Only</option>
+                        <option value="female only">Female Only</option>
+                    </select>
+                    <br>
+                    <button class="btn btn-primary" ng-disabled="bunkEditForm.$invalid">Submit</button>
+                </div>
+            </form>
+            <button class="btn btn-danger" ng-click="shelterCtrl.cleanUp()">Cancel</button>
+        </div>
+        <!-- End of container -->
+    </div>
+</div>

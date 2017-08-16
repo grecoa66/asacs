@@ -1,0 +1,56 @@
+<div ng-controller="reportsController as reportsCtrl">
+
+    <h2>Reports</h2>
+
+    <nav class="navbar navbar-default">
+        <div class="container-fluid">
+            <ul class="nav navbar-nav">
+                <li><a href="home">Main Menu</a></li>
+                <li ng-click="reportsCtrl.getMealsRemain()"><a>Meals Remaining</a></li>
+                <li ng-click="reportsCtrl.getAvailBeds()"><a>Available Bunks/Rooms</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div ng-show="loadingResources">
+        <h3>Currently Loading resources...</h3>
+    </div>
+
+    <div ng-show="mealsRemainData">
+        <h5>Meals Remaining</h5>
+        The number of meals remaining in inventory in all food banks in the ASACS system is <strong>{{mealsRemaining}}</strong>. <br/>
+        Please consider donating items so that we can provide more meals. The item that we need the most at this time is <strong>{{mostNeeded}}</strong>.
+    </div>
+
+    <div ng-show="mealsError">
+        <h5 class="warning-text">Sorry, there was a problem with this report. Please try again later.</h5>
+    </div>
+
+    <div ng-show="availBedsData" >
+        <h5>Available Bunks/Rooms</h5>
+        <table border="1" class="table">
+            <thead>
+            <th>Site ID</th><th>Name</th><th>Location</th><th>Phone Number</th><th>Hours of Operation</th><th>Conditions</th><th>Rooms Available</th><th>Male Bunks</th><th>Female Bunks</th><th>Mixed Bunks</th>
+            </thead>
+            <tbody>
+            <tr ng-repeat="site in bedsReport">
+                <td>{{site.site_number}}</td>
+                <td>{{site.name}}</td>
+                <td>{{site.location}}</td>
+                <td>{{site.phone}}</td>
+                <td>{{site.hours}}</td>
+                <td>{{site.condition}}</td>
+                <td>{{site.rooms}}</td>
+                <td>{{site.male_only}}</td>
+                <td>{{site.female_only}}</td>
+                <td>{{site.mixed}}</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div ng-show="noBedsAvail">
+        <h5 class="warning-text">Sorry, all shelters are currently at maximum capacity.</h5>
+    </div>
+
+</div>

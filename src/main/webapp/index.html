@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en" ng-app='asacs'>
+<head>
+    <meta charset="UTF-8">
+    <title>ASACS - Team 39</title>
+
+    <script src="node_modules/angular/angular.js"></script>
+    <script src="node_modules/angular-route/angular-route.js"></script>
+    <script src="node_modules/angular-resource/angular-resource.js"></script>
+
+    <link rel="stylesheet" type="text/css" href="node_modules/bootstrap/dist/css/bootstrap.css">
+
+    <base href="/ASACS/" />
+</head>
+<body>
+    <nav class="navbar navbar-inverse">
+        <div class="container-fluid" ng-controller="authController as authCtrl">
+            <a href="/ASACS/home" type="button" class="btn btn-default navbar-btn btn-primary">
+                <span class="glyphicon glyphicon-home"></span>ASACS
+            </a>
+            <span id="userNameSite" ng-style="{color:'white'}">&nbsp; {{userName}} &nbsp;  &nbsp; {{siteManaging}}</span>
+            <a href="/ASACS/" type="button" ng-click="authCtrl.logout()" class="btn btn-default navbar-btn btn-danger pull-right">
+                Log out
+            </a>
+        </div>
+    </nav>
+    <!-- where the angular views get loaded -->
+    <div ng-view></div>
+
+    <script src="app.js"></script>
+    <!-- Controller imports -->
+    <script src="main/main.controller.js"></script>
+    <script src="foodbank/foodbank.controller.js"></script>
+    <script src="manage_services/services.controller.js"></script>
+    <script src="kitchen/kitchen.controller.js"></script>
+    <script src="pantry/pantry.controller.js"></script>
+    <script src="shelter/shelter.controller.js"></script>
+    <script src="auth/auth.service.js"></script>
+    <script src="auth/auth.controller.js"></script>
+    <script src="client/client.controller.js"></script>
+    <script src="reports/reports.controller.js"></script>
+
+</body>
+</html>
